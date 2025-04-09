@@ -79,45 +79,41 @@ class CommandeController extends Controller
         }
     }
 
-    public function update(Request $request, $id)
-    {
-        try {
-            $validated = $request->validate([
-                // 'table_id' => 'required|exists:tables,id',
-                // 'serveur_id' => 'required|exists:serveurs,id',
-                // 'statut' => 'required|in:en attente,en cours,terminée',
-                'plats' => 'sometimes|array',
-                'plats.*.id' => 'exists:plats,id',
-                'plats.*.quantite' => 'integer|min:1',
-            ]);
+  public function update(Request $request, $id)
+{
+    try {
+        $validated = $request->validate([
+            'statut' => 'required|in:en attente,en cours,terminée', // Réactiver ceci
+            'plats' => 'sometimes|array',
+            'plats.*.id' => 'exists:plats,id',
+            'plats.*.quantite' => 'integer|min:1',
+        ]);
 
-            $commande = Commande::findOrFail($id);
+        $commande = Commande::findOrFail($id);
 
-            // Recalculer le total si les plats sont fournis
-            if (isset($validated['plats'])) {
-                $total = 0;
-                foreach ($validated['plats'] as $platData) {
-                    $plat = Plat::findOrFail($platData['id']);
-                    $total += $plat->prix * $platData['quantite'];
-                }
-                $validated['total'] = $total;
+        if (isset($validated['plats'])) {
+            $total = 0;
+            foreach ($validated['plats'] as $platData) {
+                $plat = Plat::findOrFail($platData['id']);
+                $total += $plat->prix * $platData['quantite'];
             }
-
-            $commande->update($validated);
-            return response()->json($commande);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $e->errors(),
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Erreur lors de la mise à jour de la commande',
-                'error' => $e->getMessage(),
-            ], 500);
+            $validated['total'] = $total;
         }
-    }
 
+        $commande->update($validated);
+        return response()->json($commande);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return response()->json([
+            'message' => 'Validation failed',
+            'errors' => $e->errors(),
+        ], 422);
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Erreur lors de la mise à jour de la commande',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
     public function destroy($id)
     {
         try {
